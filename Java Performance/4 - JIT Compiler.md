@@ -53,7 +53,7 @@
 **一组数据：**
 
 | Application | -client | -server | -XX:+TieredCompilation | 类数量 |
-| -- | -- | -- | -- | -- |
+| --- | --- | --- | --- | --- |
 | HelloWorld | 0.08s | 0.08s | 0.08s | Few |
 | NetBeans | 2.83s | 3.92s | 3.07s | ~10000 |
 | HelloWorld | 51.5s | 54.0s | 52.0s | ~20000 |
@@ -69,7 +69,7 @@
 对于批处理任务，任务量的大小是决定运行时间和使用哪种编译策略的最重要因素：
 
 | Number of Tasks | -client | -server | -XX:+TieredCompilation |
-| -- | -- | -- | -- |
+| --- | --- | --- | --- |
 | 1 | 0.142s | 0.176s | 0.165s |
 | 10 | 0.211s | 0.348s | 0.226s |
 | 100 | 0.454s | 0.674s | 0.472s |
@@ -92,7 +92,7 @@
 以下的一组数据表示了一个典型的数据获取程序在使用不同“热身时间”以及不同编译策略时，对吞吐量(OPS)的影响(执行时间为60s)：
 
 | Warm-up Period | -client | -server | -XX:+TieredCompilation |
-| -- | -- | -- | -- |
+| --- | --- | --- | --- |
 | 0s | 15.87 | 23.72 | 24.23 |
 | 60s | 16.00 | 23.73 | 24.26 |
 | 300s | 16.85 | 24.42 | 24.43 |
@@ -129,7 +129,7 @@
 ### OS和编译器参数之间的关系 ###
 
 | JVM版本 | -client | -server | -d64 |
-| -- | -- | -- | -- |
+| --- | --- | --- | --- |
 | Linux 32-bit | 32-bit client compiler | 32-bit server compiler | Error |
 | Linux 64-bit | 64-bit server compiler | 64-bit server compiler | 64-bit server compiler |
 | Mac OS X | 64-bit server compiler | 64-bit server compiler | 64-bit server compiler |
@@ -141,7 +141,7 @@
 ### OS和默认编译器的关系 ###
 
 | OS | 默认JIT编译器 |
-| -- | -- |
+| --- | --- |
 | Windows, 32-bit, any number of CPUs | -client |
 | Windows, 64-bit, any number of CPUs | -server |
 | Mac OS X, any number of CPUs | -server |
