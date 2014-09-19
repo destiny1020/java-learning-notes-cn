@@ -171,6 +171,62 @@ OS和默认JIT的关系是建立在以下两个事实之上：
 
 ### 代码缓存调优(Tuning the Code Cache) ###
 
+当JVM对代码进行编译后，被编译的代码以汇编指令的形式存在于代码缓存中(Code Cache)，显然这个缓存区域也是有大小限制的，当此区域被填满了之后，编译器就不能够再编译其他Java字节码了。
+
+所以当此区域设置的太小时，会对程序性能造成影响，因为编译器不会对Java字节码进行编译来得到运行速度更快的汇编指令/二进制代码了。
+
+当使用Tiered编译策略，这种影响会更常见。因为该策略在运行之处，编译器的行为类似Client编译器，此时大量的Java字节码会被编译，如果Code Cache设置的太小，那么性能就得不到充分地提升。
+
+当Code Cache区域被填满时，JVM会给出警告：
+
+> Java HotSpot(TM) 64-Bit Server VM warning: CodeCache is full.
+> Compiler has been disabled.
+> Java HotSpot(TM) 64-Bit Server VM warning: Try increasing the
+>  code cache size using -XX:ReservedCodeCacheSize=
+
+
+当然通过查看编译日志也能够知道Code Cache的使用情况。**TODO**
+
+
+#### Java平台和默认Code Cache空间的关系： ####
+
+| Java平台 | 默认空间 |
+| --- | --- |
+| 32-bit client, Java 8 | 32 MB |
+| 32-bit server with tiered compilation, Java 8 | 240 MB |
+| 64-bit server with tiered compilation, Java 8 | 240 MB |
+| 32-bit client, Java 7 | 32 MB |
+| 32-bit server, Java 7 | 32 MB |
+| 64-bit server, Java 7 | 48 MB |
+| 64-bit server with tiered compilation, Java 7 | 96 MB |
+
+在Java 7中，这个区域的默认空间经常不够，所以在必要的场景下需要增加它的空间。然而，并没有一个非常好的方法来给出一个应用到底在Code Cache区域的空间为多少时才能够达到最好的性能。你所能做的就是不断地进行尝试，来得到一个最好的结果。
+
+Code Cache的最大空间可以通过：`-XX:ReservedCodeCacheSize=N`来进行设置。在默认情况下，N就是上表中的默认空间大小。关于Code Cache的空间管理，和JVM中对于其他内存空间的管理方法类似，也提供了一个设置初始值的方法：`-XX:InitialCodeCacheSize=N`。初始值和选择编译器的类型以及处理器的架构相关，但是一般需要设置的只是最大空间。
+
+### 代码缓存空间的大小 ###
+
+那么是不是把Code Cache空间设置的越大越好呢？也不尽然。因为设置之后，哪怕实际上没有用到，这块空间也被JVM给“预定”了，不能用作他途。
+
+前文中提到过，如果JVM使用的是32位的，那么内存空间最大为4GB，这个4GB包括了Java堆，JVM自身的代码(包括用到的各种Native库和线程栈)，应用程序可分配的内存空间，当然也会包括Code Cache。所以从这个角度出发，也不是把它设置的越大越好。
+
+在程序运行时，可以通过jconsole工具来进行监测。
+
+### 预定内存和分配内存(Reserved Memory and Allocation Memory) ###
+
+它们是JVM中两个很比较重要的概念，在Code Cache，Java堆以及各种JVM使用的内存区域中都会出现。**TODO**
+
+#### 总结 ####
+
+1. 代码缓存会影响到JVM能够编译的Java字节码数量，它会被设置一个最大的可用空间，当空间完全被占用后，JIT编译器就会停止编译。
+2. 使用Tiered编译策略时，代码缓存会很快就被用尽(尤其是Java 7)，此时可以通过设置预留空间(也就是最大的可用空间)来进行调整。
+
+
+
+
+
+
+
 
 
 
