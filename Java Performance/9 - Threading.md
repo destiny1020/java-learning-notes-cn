@@ -109,6 +109,279 @@
 
 ### 定制ThreadPoolExecutor ###
 
+线程池在同时满足以下三个条件时，就会创建一个新的线程：
+- 有任务需要被执行
+- 当前线程池中所有的线程都处于工作状态
+- 当前线程池的线程数没有达到最大线程数
+
+至于线程池会如何创建这个新的线程，则是根据任务队列的种类：
+
+- 任务队列是 SynchronousQueue
+	这个队列的特点是，它并不能放置任何任务在其队列中，当有任务被提交时，使用SynchronousQueue的线程池会立即为该任务创建一个线程(如果线程数量没有达到最大时，如果达到了最大，那么该任务会被拒绝)。这种队列适合于当任务数量较小时采用。也就是说，在使用这种队列时，未被执行的任务没有一个容器来暂时储存。
+
+- 任务队列是 无限队列(Unbound Queue)
+	无界限的队列可以是诸如LinkedBlockingQueue这种类型，在这种情况下，任何被提交的任务都不会被拒绝。但是线程池会忽略最大线程数这一参数，意味着线程池的最大线程数就变成了设置的最小线程数。所以在使用这种队列时，通常会将最大线程数设置的和最小线程数相等。这就相当于使用了一个固定了线程数量的线程池。
+
+- 任务队列是 有限队列(Bounded Queue)
+	当使用的队列是诸如ArrayBlockingQueue这种有限队列的时候，来决定什么时候创建新线程的算法就相对复杂一些了。比如，最小线程数是4，最大线程数是8，任务队列最多能够容纳10个任务。在这种情况下，当任务逐渐被添加到队列中，直到队列被占满(10个任务)，此时线程池中的工作线程仍然只有4个，即最小线程数。只有当仍然有任务希望被放置到队列中的时候，线程池才会新创建一个线程并从队列头部拿走一个任务，以腾出位置来容纳这个最新被提交的任务。
+
+关于如何定制ThreadPoolExecutor，遵循KISS原则(Keep It Simple, Stupid)就好了。比如将最大线程数和最小线程数设置的相等，然后根据情况选择有限队列或者无限队列。
+
+#### 总结 ####
+
+1. 线程池是对象池的一个有用的例子，它能够节省在创建它们时候的资源开销。并且线程池对系统中的线程数量也起到了很好的限制作用。
+2. 线程池中的线程数量必须仔细的设置，否则冒然增加线程数量只会带来性能的下降。
+3. 在定制ThreadPoolExecutor时，遵循KISS原则，通常情况下会提供最好的性能。
+
+### ForkJoinPool ###
+
+在Java 7中引入了一种新的线程池：ForkJoinPool。
+
+它同ThreadPoolExecutor一样，也实现了Executor和ExecutorService接口。它使用了一个无限队列来保存需要执行的任务，而线程的数量则是通过构造函数传入，如果没有向构造函数中传入希望的线程数量，那么当前计算机可用的CPU数量会被设置为线程数量作为默认值。
+
+ForkJoinPool主要用来使用分治法(Divide-and-Conquer Algorithm)来解决问题。典型的应用比如快速排序算法。这里的要点在于，ForkJoinPool需要使用相对少的线程来处理大量的任务。比如要对1000万个数据进行排序，那么会将这个任务分割成两个500万的排序任务和一个针对这两组500万数据的合并任务。以此类推，对于500万的数据也会做出同样的分割处理，到最后会设置一个阈值来规定当数据规模到多少时，停止这样的分割处理。比如，当元素的数量小于10时，会停止分割，转而使用插入排序对它们进行排序。
+
+那么到最后，所有的任务加起来会有大概2000000+个。问题的关键在于，对于一个任务而言，只有当它所有的子任务完成之后，它才能够被执行。
+
+所以当使用ThreadPoolExecutor时，使用分治法会存在问题，因为ThreadPoolExecutor中的线程无法像任务队列中再添加一个任务并且在等待该任务完成之后再继续执行。而使用ForkJoinPool时，就能够让其中的线程创建新的任务，并挂起当前的任务，此时线程就能够从队列中选择子任务执行。
+
+比如，我们需要统计一个double数组中小于0.5的元素的个数，那么可以使用ForkJoinPool进行实现如下：
+
+```java
+public class ForkJoinTest {
+	private double[] d;
+	private class ForkJoinTask extends RecursiveTask<Integer> {
+		private int first;
+		private int last;
+		public ForkJoinTask(int first, int last) {
+			this.first = first;
+			this.last = last;
+		}
+		protected Integer compute() {
+			int subCount;
+			if (last - first < 10) {
+				subCount = 0;
+				for (int i = first; i <= last; i++) {
+					if (d[i] < 0.5)
+						subCount++;
+					}
+				}
+			else {
+				int mid = (first + last) >>> 1;
+				ForkJoinTask left = new ForkJoinTask(first, mid);
+				left.fork();
+				ForkJoinTask right = new ForkJoinTask(mid + 1, last);
+				right.fork();
+				subCount = left.join();
+				subCount += right.join();
+			}
+			return subCount;
+		}
+	}
+	public static void main(String[] args) {
+		d = createArrayOfRandomDoubles();
+		int n = new ForkJoinPool().invoke(new ForkJoinTask(0, 9999999));
+		System.out.println("Found " + n + " values");
+	}
+}
+```
+
+以上的关键是fork()和join()方法。在ForkJoinPool使用的线程中，会使用一个内部队列来对需要执行的任务以及子任务进行操作来保证它们的执行顺序。
+
+那么使用ThreadPoolExecutor或者ForkJoinPool，会有什么性能的差异呢？
+
+首先，使用ForkJoinPool能够使用数量有限的线程来完成非常多的具有父子关系的任务，比如使用4个线程来完成超过200万个任务。但是，使用ThreadPoolExecutor时，是不可能完成的，因为ThreadPoolExecutor中的Thread无法选择优先执行子任务，需要完成200万个具有父子关系的任务时，也需要200万个线程，显然这是不可行的。
+
+当然，在上面的例子中，也可以不使用分治法，因为任务之间的独立性，可以将整个数组划分为几个区域，然后使用ThreadPoolExecutor来解决，这种办法不会创建数量庞大的子任务。代码如下：
+
+```java
+public class ThreadPoolTest {
+	private double[] d;
+	private class ThreadPoolExecutorTask implements Callable<Integer> {
+		private int first;
+		private int last;
+		public ThreadPoolExecutorTask(int first, int last) {
+			this.first = first;
+			this.last = last;
+		}
+		public Integer call() {
+			int subCount = 0;
+			for (int i = first; i <= last; i++) {
+				if (d[i] < 0.5) {
+					subCount++;
+				}
+			}
+			return subCount;
+		}
+	}
+	public static void main(String[] args) {
+		d = createArrayOfRandomDoubles();
+		ThreadPoolExecutor tpe = new ThreadPoolExecutor(4, 4, Long.MAX_VALUE, TimeUnit.SECONDS, new LinkedBlockingQueue());
+		Future[] f = new Future[4];
+		int size = d.length / 4;
+		for (int i = 0; i < 3; i++) {
+			f[i] = tpe.submit(new ThreadPoolExecutorTask(i * size, (i + 1) * size - 1);
+		}
+		f[3] = tpe.submit(new ThreadPoolExecutorTask(3 * size, d.length - 1);
+		int n = 0;
+		for (int i = 0; i < 4; i++) {
+			n += f.get();
+		}
+		System.out.println("Found " + n + " values");
+	}
+}
+```
+
+在分别使用ForkJoinPool和ThreadPoolExecutor时，它们处理这个问题的时间如下：
+
+| 线程数 | ForkJoinPool | ThreadPoolExecutor |
+| --- | --- | --- |
+| 1 | 3.2s | 0.31s |
+| 4 | 1.9s | 0.15s |
+
+对执行过程中的GC同样也进行了监控，发现在使用ForkJoinPool时，总的GC时间花去了1.2s，而ThreadPoolExecutor并没有触发任何的GC操作。这是因为在ForkJoinPool的运行过程中，会创建大量的子任务。而当他们执行完毕之后，会被垃圾回收。反之，ThreadPoolExecutor则不会创建任何的子任务，因此不会导致任何的GC操作。
+
+ForkJoinPool的另外一个特性是它能够实现工作窃取(Work Stealing)，在该线程池的每个线程中会维护一个队列来存放需要被执行的任务。当线程自身队列中的任务都执行完毕后，它会从别的线程中拿到未被执行的任务并帮助它执行。
+
+可以通过以下的代码来测试ForkJoinPool的Work Stealing特性：
+
+```java
+for (int i = first; i <= last; i++) {
+	if (d[i] < 0.5) {
+		subCount++;
+	}
+	for (int j = 0; j < d.length - i; j++) {
+		for (int k = 0; k < 100; k++) {
+			dummy = j * k + i; // dummy is volatile, so multiple writes occur
+			d[i] = dummy;
+		}
+	}
+}
+```
+
+因为里层的循环次数(j)是依赖于外层的i的值的，所以这段代码的执行时间依赖于i的值。当i = 0时，执行时间最长，而i = last时执行时间最短。也就意味着任务的工作量是不一样的，当i的值较小时，任务的工作量大，随着i逐渐增加，任务的工作量变小。因此这是一个典型的任务负载不均衡的场景。
+
+这时，选择ThreadPoolExecutor就不合适了，因为它其中的线程并不会关注每个任务之间任务量的差异。当执行任务量最小的任务的线程执行完毕后，它就会处于空闲的状态(Idle)，等待任务量最大的任务执行完毕。
+
+而ForkJoinPool的情况就不同了，即使任务的工作量有差别，当某个线程在执行工作量大的任务时，其他的空闲线程会帮助它完成剩下的任务。因此，提高了线程的利用率，从而提高了整体性能。
+
+这两种线程池对于任务工作量不均衡时的执行时间：
+
+| 线程数 | ForkJoinPool | ThreadPoolExecutor |
+| --- | --- | --- |
+| 1 | 54.5s | 53.3s |
+| 4 | 16.6s | 24.2s |
+
+注意到当线程数量为1时，两者的执行时间差异并不明显。这是因为总的计算量是相同的，而ForkJoinPool慢的那一秒多是因为它创建了非常多的任务，同时也导致了GC的工作量增加。
+
+当线程数量增加到4时，执行时间的区别就较大了，ForkJoinPool的性能比ThreadPoolExecutor好将近50%，可见Work Stealing在应对任务量不均衡的情况下，能够保证资源的利用率。
+
+所以一个结论就是：当任务的任务量均衡时，选择ThreadPoolExecutor往往更好，反之则选择ForkJoinPool。
+
+另外，对于ForkJoinPool，还有一个因素会影响它的性能，就是停止进行任务分割的那个阈值。比如在之前的快速排序中，当剩下的元素数量小于10的时候，就会停止子任务的创建。下表显示了在不同阈值下，ForkJoinPool的性能：
+
+| 线程数 | ForkJoinPool |
+| --- | --- |
+| 20 | 17.8s |
+| 10 | 16.6s |
+| 5 | 15.6s |
+| 1 | 16.8s |
+
+可以发现，当阈值不同时，对于性能也会有一定影响。因此，在使用ForkJoinPool时，对此阈值进行测试，使用一个最合适的值也有助于整体性能。
+
+#### 自动并行化(Automatic Parallelization) ####
+
+在Java 8中，引入了自动并行化的概念。它能够让一部分Java代码自动地以并行的方式执行，前提是使用了ForkJoinPool。
+
+Java 8为ForkJoinPool添加了一个通用线程池，这个线程池用来处理那些没有被显式提交到任何线程池的任务。它是ForkJoinPool类型上的一个静态元素，它拥有的默认线程数量等于运行计算机上的处理器数量。
+
+当调用Arrays类上添加的新方法时，自动并行化就会发生。比如用来排序一个数组的并行快速排序，用来对一个数组中的元素进行并行遍历。自动并行化也被运用在Java 8新添加的Stream API中。
+
+比如下面的代码用来遍历列表中的元素并执行需要的计算：
+
+```java
+Stream<Integer> stream = arrayList.parallelStream();
+stream.forEach(a -> {
+	String symbol = StockPriceUtils.makeSymbol(a);
+	StockPriceHistory sph = new StockPriceHistoryImpl(symbol, startDate, endDate, entityManager);
+});
+```
+
+对于列表中的元素的计算都会以并行的方式执行。forEach方法会为每个元素的计算操作创建一个任务，该任务会被前文中提到的ForkJoinPool中的通用线程池处理。以上的并行计算逻辑当然也可以使用ThreadPoolExecutor完成，但是就代码的可读性和代码量而言，使用ForkJoinPool明显更胜一筹。
+
+对于ForkJoinPool通用线程池的线程数量，通常使用默认值就可以了，即运行时计算机的处理器数量。如果需要调整线程数量，可以通过设置系统属性：`-Djava.util.concurrent.ForkJoinPool.common.parallelism=N`
+
+下面的一组数据用来比较使用ThreadPoolExecutor和ForkJoinPool中的通用线程池来完成上面简单计算时的性能：
+
+| 线程数 | ThreadPoolExecutor(秒) | ForkJoinPool Common Pool(秒) |
+| --- | --- | --- |
+| 1 | 255.6 | 135.4 |
+| 2 | 134.8 | 110.2 |
+| 4 | 77.0 | 96.5 |
+| 8 | 81.7 | 84.0 |
+| 16 | 85.6 | 84.6 |
+
+注意到当线程数为1，2，4时，性能差异的比较明显。线程数为1的ForkJoinPool通用线程池和线程数为2的ThreadPoolExecutor的性能十分接近。
+
+出现这种现象的原因是，forEach方法用了一些小把戏。它会将执行forEach本身的线程也作为线程池中的一个工作线程。因此，即使将ForkJoinPool的通用线程池的线程数量设置为1，实际上也会有2个工作线程。因此在使用forEach的时候，线程数为1的ForkJoinPool通用线程池和线程数为2的ThreadPoolExecutor是等价的。
+
+所以当ForkJoinPool通用线程池实际需要4个工作线程时，可以将它设置成3，那么在运行时可用的工作线程就是4了。
+
+#### 总结 ####
+
+1. 当需要处理递归分治算法时，考虑使用ForkJoinPool。
+2. 仔细设置不再进行任务划分的阈值，这个阈值对性能有影响。
+3. Java 8中的一些特性会使用到ForkJoinPool中的通用线程池。在某些场合下，需要调整该线程池的默认的线程数量。
+
+
+## 线程同步(Thread Synchronization) ##
+
+### 同步和Java并发工具 ###
+
+当提到同步(Synchronization)时，也就意味着在某一个时刻，只有一个线程能够执行某个代码片段。为了达到同步的目的，可以使用synchronized关键字，或者使用Lock类，以及java.util.concurrent和java.util.concurrent.atomic包中的相关类型。
+
+严格说来，原子类型并不使用同步(Synchronization)，它们使用的是一个叫做Compare and Swap(CAS)的CPU指令，而同步则是为了保证对一个资源的独占性访问。使用CAS指令的线程并没有独占它需要访问的资源。
+
+这两种方式(同步和CAS)在性能上的差异在后面会进行讨论。但是，尽管CAS并不是等同于同步，它在表现形式上还是和同步非常类似，至少在开发者眼里是这样。
+
+### 同步的代价 ###
+
+被同步的代码对性能有两个方面的影响：
+
+1. 在同步代码块中消耗的时间对应用的可扩展性有影响
+2. 获取同步代码块的锁需要消耗一些CPU资源，因此会影响性能
+
+**同步和可扩展性**
+
+当一个应用中存在多个线程时，该应用的加速指数(Speedup)可以通过阿姆达尔定律(Amdahl's Law)来计算：
+
+*Speedup = 1 / (( 1 - P ) + P / N)*
+
+P是一个百分比，表示的是程序中以并行方式运行的代码的占比。
+N是利用的线程数(假设这些线程总是有可以利用的CPU资源)。
+
+所以根据这个定律，当P=0.8，即并行代码的占比未80%，N=8，即当可用的线程为8(CPU数量也为8，因为每个线程都是随时可执行的)时，该应用的加速指数为3.33。意味着它比纯粹的串行运行要快上3.33倍。同时需要注意的是，这里计算得到的3.33是一个理想值，也就意味着这是最理想的情况，考虑到各种客观因素，实际上的加速达不到这个值。
+
+这个定律的关键变量就是P，当它下降时，也就是应用的并行度下降时，不仅1 - P这部分值会增加，P / N这部分值也会增加，意味着线程带来的性能增加也会因为并行度的下降而受到负面影响。比如，在理想情况下，当P = 1，意味着整个应用都是并行的，此时Speedup的值就等于N，即CPU的个数。但是当P = 0.8，应用中仅有20%的代码是串行的，Speedup的值就从最理想的8降低到了3.33，可见应用的并发度对于程序性能的影响多么大。
+
+**给对象加锁的代价**
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
