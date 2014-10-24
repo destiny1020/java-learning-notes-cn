@@ -8,7 +8,7 @@ Java 8中同时存在面向对象编程(OOP)和函数式编程(FP, Functional Pr
 
 下面这张图反映了，纯粹的面向对象设计和混合式设计(面向对象和函数式)的风格。
 
-图4
+![](https://github.com/destiny1020/java-learning-notes-cn/blob/master/Functional%20Programming%20in%20Java/images/4.PNG)
 
 在OOP中，对象的状态会随着程序的进行而不断发生变化，但是对象始终只有一个。
 而在FP中，对象每次被一个函数处理之后，都会得到一个新的对象，而原来的对象并不会发生变化。
