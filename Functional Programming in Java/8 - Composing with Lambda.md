@@ -188,7 +188,7 @@ map，filter和reduce方法分别替代了三个for循环，而且代码也变�
 
 以上的计算逻辑可以使用下图进行表达：
 
-图5
+![](https://github.com/destiny1020/java-learning-notes-cn/blob/master/Functional%20Programming%20in%20Java/images/5.PNG)
 
 ## 并行化 ##
 
