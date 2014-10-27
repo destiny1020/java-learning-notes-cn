@@ -217,11 +217,11 @@ public class LazyStreams {
 
 对于Stream操作，更好的代码阅读顺序是从右到左，或者从下到上。每一个操作都只会做到恰到好处。如果以Eager的视角来阅读上述代码，它也许会执行15步操作：
 
-图1
+![想象的顺序](https://github.com/destiny1020/java-learning-notes-cn/blob/master/Functional%20Programming%20in%20Java/images/1.PNG)
 
 但是实际上，只有当findFirst方法被调用时，filter和map方法才会被真正触发。而filter也不会一口气对整个集合实现过滤，它会一个个的过滤，如果发现了符合条件的元素，会将该元素置入到下一个中间操作，也就是map方法中。因此，真正的执行顺序是这样的：
 
-图2
+![真正的顺序](https://github.com/destiny1020/java-learning-notes-cn/blob/master/Functional%20Programming%20in%20Java/images/2.PNG)
 
 控制台的输出是这样的：
 
