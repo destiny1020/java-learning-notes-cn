@@ -194,10 +194,199 @@ Store枚举类型中有三个选项：
 
 ## 分面搜索(Faceted Search) ##
 
+首先，不要被分面搜索这个名字给唬住了。它只是Hibernate Search中的一个术语而已，背后的概念其实相当简单，给出一个前端的效果图，大家就明白了：
+
+图8
+
+没错，所谓的分面搜索这么高大上的术语实际上就是我们常说的按照类别进行筛选。所以在后文中，就直接使用分类搜索，我认为这样更直观一点。
+
+注意它和之前介绍的过滤器的区别。过滤器需要了解对应实体的类型，比如在使用deviceName作为过滤器的目标字段时，我们首先要定义有哪些可用的deviceName。然后将它们显示在前端供用户选择，用户选择某个deviceName之后再进行搜索，得到的结果即是被筛选后的结果。
+
+而分类搜索则不同，它不需要你事先做任何定义。在指定类型目标字段后，得到的搜索结果会按照该字段的值进行分类。就像上图中显示的那样，当我们搜索“显示器”时，会根据结果自身按照目标字段进行一次分类，然后将各个分类显示出来供用户选择。
+
+比如，当我们需要按照App实体的类型进行分类时，我们通常需要知道可以在分类字段上将结果分为哪些类型以及有多少记录属于该类型，比如A个App属于Business，B个App属于Game等等。除了按照类型进行分类外，还可以按照价格这种属性进行分类，比如M个App的价格在20元以上，N个App的价格在10元以下等。
+
+按照类型和价格进行分类，背后的原理显然是不同的。前者这种分类方式是一种基于离散值的分类，而后者则是一种基于连续值的分类。下面一一进行介绍。
+
 ### 离散分面(Discrete Facets) ###
+
+对于基于离散值的分类，Hibernate Search提供的API调用流程如下：
+
+图9
+
+举个实际按照category字段进行分类的例子：
+
+```java
+FacetingRequest categoryFacetingRequest = queryBuilder
+	.facet()
+	.name("categoryFacet")
+	.onField("category")
+	.discrete()
+	.orderedBy(FacetSortOrder.FIELD_VALUE)
+	.includeZeroCounts(false)
+	.createFacetingRequest();
+
+hibernateQuery.getFacetManager().enableFaceting(categoryFacetingRequest);
+```
+
+facet方法首先打开了通向分类搜索的大门。
+name方法接受一个String作为参数，表示的是这个FacetingRequest的名字，供后续代码对它进行引用。
+onField方法和前面的用法类似，表示的是目标字段。
+discrete方法表示这个分类搜索是基于离散值的。
+orderedBy中接受一个FacetSortOrder枚举类型作为参数，可以选择的值包括：
+
+- COUNT_ASC：按照属于某个类型的记录数量作为排序关键字，进行从小到大的排序。
+- COUNT_DESC：和COUNT_ASC类似，只不过是进行从大到小的排序。
+- FIELD_VALUE：按照类型本身的字母顺序进行排序，比如Business类型会出现在Game类型前。
+
+includeZeroCounts方法接受一个布尔值作为参数，如果是true那么表示即使没有和该类型匹配的记录，也会显示该类型，此时会将所有可用类型都列举出来。反之当传入的是false时，没有匹配项的类型是不会被显示的。
+除了上述调用的方法之外，可以发现在流程图中还有一个maxFacetCount方法。顾名思义，它能够限制返回的类型的数量。
+
+最后，对查询对象调用getFacetManager方法获取分类管理器并通过enableFaceting启用该分类。
+
+另外需要注意的是，仅仅使用以上代码是无法获取到分类信息的。只有在调用了真正的查询方法，比如hibernateQuery.list()之后，才能够得到分类信息：
+
+```java
+List<App> apps = hibernateQuery.list();
+
+List<Facet> categoryFacets = hibernateQuery.getFacetManager().getFacets("categoryFacet");
+```
+
+在getFacets方法中，传入了之前用于定义分类搜索的那串字符。
+有了每个分类的信息，我们就可以用它来进行一些统计工作了：
+
+```java
+Map<String, Integer> categories = new TreeMap<String, Integer>();
+for(Facet categoryFacet : categoryFacets) {
+	categories.put(categoryFacet.getValue(),categoryFacet.getCount());
+
+	// 设置选择的分类，重新执行查询来得到筛选后的结果
+	if(categoryFacet.getValue().equalsIgnoreCase(selectedCategory)) {
+		hibernateQuery.getFacetManager().getFacetGroup("categoryFacet").selectFacets(categoryFacet);
+		apps = hibernateQuery.list();
+	}
+}
+```
+
+Facet类型中定义了一个getValue和getCount方法用于获取到该分类的类型信息和具体的匹配数量信息。
+除了进行基本的统计工作外，以上代码还会在当前处理的分类和用户选择的分类相同时进行一些处理。
+
+具体而言，它会通知HibernateQuery查询对象当前选中的分类是哪一个。然后，通过再次调用查询对象的list方法来获取该分类下的记录。
 
 ### 范围分面(Range Facets) ###
 
+范围分面作为另一种分类搜索的方式，其流程如下：
+
+图10
+
+可以注意到它是通过将离散分面的API和范围查询的API进行整合来完成定义流程的。
+
+includeZeroCounts，maxFacetCount和orderBy等方法的使用方式和在离散分面中的类似。
+
+下面是一个定义范围分的例子：
+
+```java
+FacetingRequest priceRangeFacetingRequest = queryBuilder
+	.facet()
+	.name("priceRangeFacet")
+	.onField("price")
+	.range()
+	.below(1f).excludeLimit()
+	.from(1f).to(5f)
+	.above(5f).excludeLimit()
+	.createFacetingRequest();
+
+hibernateQuery.getFacetManager().enableFaceting(priceRangeFacetingRequest);
+```
+
+使用range方法表示此分类是一个基于范围的分类。
+below和excludeLimit的联合使用定义了一个小于1元的分类；from和to定义了一个介于1元和5元的分类；above和excludeLimit联合定义了一个大于5元的分类。
+
+类似地，最后也需要启用该分类查询。通过enableFaceting方法。在执行了一次查询后，也可以对分类信息进行统计和处理：
+
+```java
+Map<String, Integer> priceRanges = new TreeMap<String, Integer>();
+for(Facet priceRangeFacet : priceRangeFacets) {
+	priceRanges.put(priceRangeFacet.getValue(), priceRangeFacet.getCount());
+
+	// 设置选择的分类，重新执行查询来得到筛选后的结果
+	if(priceRangeFacet.getValue().equalsIgnoreCase(selectedPriceRange)) {
+		hibernateQuery.getFacetManager().getFacetGroup("priceRangeFacet").selectFacets(priceRangeFacet);
+		apps = hibernateQuery.list();
+	}
+}
+```
+
+当然，在同时使用了多个分类后，可以统一执行一次查询来完成多个筛选：
+
+```java
+Map<String, Integer> categories = new TreeMap<String, Integer>();
+for(Facet categoryFacet : categoryFacets) {
+	categories.put(categoryFacet.getValue(),categoryFacet.getCount());
+
+	// 设置选择的分类
+	if(categoryFacet.getValue().equalsIgnoreCase(selectedCategory)) {
+		hibernateQuery.getFacetManager().getFacetGroup("categoryFacet").selectFacets(categoryFacet);
+	}
+}
+
+Map<String, Integer> priceRanges = new TreeMap<String, Integer>();
+for(Facet priceRangeFacet : priceRangeFacets) {
+	priceRanges.put(priceRangeFacet.getValue(), priceRangeFacet.getCount());
+
+	// 设置选择的分类
+	if(priceRangeFacet.getValue().equalsIgnoreCase(selectedPriceRange)) {
+		hibernateQuery.getFacetManager().getFacetGroup("priceRangeFacet").selectFacets(priceRangeFacet);
+	}
+}
+
+apps = hibernateQuery.list();
+```
+
+最后得到的效果如下所示：
+
+图11
+
 ## 查询时提升(Query-time Boosting) ##
 
+我们已经介绍了如何在索引时实现静态和动态方式的提升。实际上，在查询时同样可以对某些域进行提升。
+
+使用查询时提升的关键在于onField和andField方法的使用，在使用它们后能够使用boostedTo方法来指定该域的权重：
+
+```java
+luceneQuery = queryBuilder
+	.phrase()
+	.onField("name").boostedTo(2)
+	.andField("description").boostedTo(2)
+	.andField("supportedDevices.name")
+	.andField("customerReviews.comments")
+	.sentence(unquotedSearchString)
+	.createQuery();
+```
+
+当使用的是短语查询时，我们为了强调这是个短语查询因此能够更加精确，所以加倍了name和description字段的权重。
+
 ## 查询的时间限制 ##
+
+在实际的生产环境中，由于查询涉及到的数据量可能会相当大，因此如果不对查询进行时间上的限制的话，对服务器的性能会有较大的影响。
+
+为了处理这种用例，Hibernate Search提供了两种方法来对查询进行时间限制。**注意这里的时间限制是指对Lucene索引进行查询的时间限制**。如果在规定的时间窗口内完成了索引的查询，然后到了对数据库记录进行获取的阶段的话，这个时间限制就不再有效了，毕竟对数据库的操作是由Hibernate ORM负责的，如果需要限制该阶段的时间，可以查看Hibernate的相关API。
+
+- FullTextQuery类型的limitExecutionTime方法
+
+	```java
+		hibernateQuery.limitExecutionTimeTo(2, TimeUnit.SECONDS);
+	```
+
+	使用该方法后，当查询索引的时间超过了规定的值后。当前查询得到的结果会被返回，这个结果只是期待结果的一个子集。我们可以通过调用hasPartialResults来判断结果是否只是一部分。
+
+- FullTextQuery类型的setTimeout方法
+
+	```java
+		hibernateQuery.setTimeout(2, TimeUnit.SECONDS);
+	```
+	
+	使用该方法后，如果查询索引没有在规定时间内完成，那么会直接抛出一个QueryTimeoutException异常，而不是返回部分结果。
+
+另外，无论是哪一种方法，指定的超时时间都不可能被精确的执行。通常而言，实际停止操作的时间会比指定的时间稍微长那么一点。
+	
