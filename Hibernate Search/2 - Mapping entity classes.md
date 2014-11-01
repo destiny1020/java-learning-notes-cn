@@ -6,7 +6,7 @@
 
 下图反映了Database，Hibernate，Hibernate Search和Lucene之间的关系：
 
-图1
+![](https://github.com/destiny1020/java-learning-notes-cn/blob/master/Hibernate%20Search/images/1.PNG)
 
 ## 域映射选项(Field Mapping Options) ##
 
