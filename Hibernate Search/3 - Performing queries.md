@@ -39,7 +39,7 @@ QueryBuilder queryBuilder = fullTextSession.getSearchFactory().buildQueryBuilder
 
 下图反映了在创建关键字查询时可能的流程：
 
-图2
+![](https://github.com/destiny1020/java-learning-notes-cn/blob/master/Hibernate%20Search/images/2.PNG)
 
 反映到代码中是这样的：
 
@@ -72,7 +72,7 @@ FullTextQuery hibernateQuery =
 
 当使用Hibernate Search DSL来定义模糊查询时，可能的流程如下：
 
-图3
+![](https://github.com/destiny1020/java-learning-notes-cn/blob/master/Hibernate%20Search/images/3.PNG)
 
 它一开始使用的也是keyword方法来定义一个基于关键字的查询，毕竟模糊查询也只是关键字查询的一种。
 它在最后也会使用onField/onFields来指定查询的目标字段。
@@ -101,7 +101,7 @@ luceneQuery = queryBuilder
 
 在Hibernate Search DSL中使用通配符搜索的流程如下：
 
-图4
+![](https://github.com/destiny1020/java-learning-notes-cn/blob/master/Hibernate%20Search/images/4.PNG)
 
 需要使用wildcard方法来指定它是一个支持通配符的查询。
 
@@ -111,7 +111,7 @@ luceneQuery = queryBuilder
 
 在Hibernate Search DSL中，可以通过短语查询来完成，一下是流程图：
 
-图5
+![](https://github.com/destiny1020/java-learning-notes-cn/blob/master/Hibernate%20Search/images/5.PNG)
 
 sentence方法接受的参数必须是一个String类型，这一点和matching有所不同。
 withSlop方法接受一个整型变量作为参数，它提供了一种原始的模糊查询方式：短语中额外可以出现的词语数量。比如我们要查询的是“Hello World”，那么在使用withSlop(1)后，“Hello Big World”也会被匹配。
@@ -135,7 +135,7 @@ if(isQuoted(searchString)) {
 
 范围查询的流程：
 
-图6
+![](https://github.com/destiny1020/java-learning-notes-cn/blob/master/Hibernate%20Search/images/6.PNG)
 
 顾名思义，范围查询通过给定上限值和下限值来对某些域进行的查询。
 因此，日期类型和数值类型通常会作为此类查询的目标域。
@@ -159,7 +159,7 @@ luceneQuery = queryBuilder
 
 如果一个查询满足不了你的需求，那么你可以使用布尔查询将若干个查询结合起来。下面是它的流程：
 
-图7
+![](https://github.com/destiny1020/java-learning-notes-cn/blob/master/Hibernate%20Search/images/7.PNG)
 
 使用bool方法来表明这个查询是一个组合查询，会组合多个子查询。它至少需要包含一个must子查询或者一个should查询。must和should分别表示的是逻辑与(Logical-AND)和逻辑或(Logical-OR)的语义。
 
