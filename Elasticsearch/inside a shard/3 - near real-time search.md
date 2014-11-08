@@ -34,7 +34,33 @@ POST /blogs/_refresh
 
 尽管refresh相比commit而言更加轻量级，但是它还是有一定的性能开销的。手动refresh在执行测试的时候有用，但是在生产环境中不要每次在索引了一份文档后就执行一次手动refresh。相反地，你需要了解ES这种近乎实时搜索的特性并体谅它。
 
-并不是所有的用例都需要每秒都执行refresh。也许你正在使用ES来索引百万计的日志文件，相比于近乎实时搜索的能力，你更在意的是如何优化文件的索引速度。You can reduce the frequency of refreshes on a per-index basis by setting the refresh_interval:
+并不是所有的用例都需要每秒都执行refresh。也许你正在使用ES来索引百万计的日志文件，相比于近乎实时搜索的能力，你更在意的是如何优化文件的索引速度。这时你可以通过索引上的refresh_interval属性设置刷新的频度：
+
+```
+PUT /my_logs
+{
+  "settings": {
+    "refresh_interval": "30s" 
+  }
+}
+```
+
+这个设置是可以动态更新的。当你在建立一个巨大的索引时，你可以暂时关闭自动刷新的功能，然后在生成环境中使用该索引时再将自动刷新打开：
+
+```
+POST /my_logs/_settings
+{ "refresh_interval": -1 } 
+
+POST /my_logs/_settings
+{ "refresh_interval": "1s" } 
+```
+
+**注意**
+
+refresh_interval接受一个"期间"作为参数，比如1s(1秒钟)或者2m(2分钟)。如果不带单位的话 - 如1，则代表的是1毫秒。如果这样设置的话，你的集群必须会跪：（ (译注：但是当设置为-1的时候表示关闭自动刷新功能)
+
+
+
 
 
 
