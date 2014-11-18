@@ -1,0 +1,127 @@
+GET /shakespeare/_mapping/line
+
+GET /shakespeare/_search
+
+GET /shakespeare/_search
+{
+  "query": { 
+    "multi_match": {
+        "query":    "love henry",
+        "fields":   [ "speaker", "text_entry" ]
+    }
+  }
+}
+
+# combine with filter
+GET /shakespeare/_search
+{
+  "query": {
+    "filtered": {
+      "query": {
+        "match": {
+          "text_entry": "henry"
+        }
+      },
+      "filter": {
+        "term": {
+          "speaker": "YORK"
+        }
+      }
+    }
+  }
+}
+
+# validate query
+# the "line" should be removed
+# pay attention to the syntax: _validate/query?explain
+GET /shakespeare/_validate/query?explain
+{
+  "query": {
+    "line": {
+      "match": {
+        "text_entry": "henry"
+      }
+    }
+  }
+}
+
+#sort
+# pay attention that "query" and "sort" are on the same level
+# and the _score is null since _score is not used for sorting the relevance
+# enforce the scoring: track_scores parameter to true
+# sorting is also supported by query string syntax: GET /_search?sort=date:desc&sort=_score&q=search
+# sorting on multi-values field:
+# For numbers and dates, you can reduce a multi-value field to a single value using the min, max, avg or sum sort modes. 
+# http://www.elasticsearch.org/guide/en/elasticsearch/guide/current/_sorting.html
+GET /shakespeare/_search
+{
+  "query": {
+    "filtered": {
+      "query": {
+        "match": {
+          "text_entry": "henry"
+        }
+      }, 
+      "filter": {
+        "term": {
+          "speaker": "YORK"
+        }
+      }
+    }
+  },
+  "sort": [
+    {
+      "speech_number": {
+        "order": "asc"
+      }
+    }
+  ]
+}
+
+# string sorting and multi-fields
+# In order to sort on a string field, that field should contain one term only: the whole not_analyzed string.
+# single field -> index in two ways
+# http://www.elasticsearch.org/guide/en/elasticsearch/guide/current/multi-fields.html
+GET /shakespeare/_search
+{
+  
+}
+
+# add metadata of _shard and _node, since term and doc frequencies are calc per shard, rather than per index
+# add metadata of _explanation:
+# description: tells you what type of calc is being performed
+# value: result of the calc
+# details: any sub-calc that were required
+GET /shakespeare/_search?explain&format=yaml
+{
+  "query": {
+    "match": {
+      "text_entry": "henry"
+    }
+  }
+}
+
+# understanding why a doc matched/not matched
+# test 80074 80075
+GET /shakespeare/line/80074/_explain
+{
+  "query": {
+    "match": {
+      "text_entry": "henry"
+    }
+  }
+}
+GET /shakespeare/line/80075/_explain
+{
+  "query": {
+    "match": {
+      "text_entry": "henry"
+    }
+  }
+}
+
+# fielddata usage
+# 1. sorting on a field
+# 2. aggregations on a field
+# 3. certain filters
+# 4. scripts which refer to fields
