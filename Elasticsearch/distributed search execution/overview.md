@@ -1,6 +1,6 @@
 # 分布式的搜索 #
 
-翻译自[这里](http://www.elasticsearch.org/guide/en/elasticsearch/guide/current/distributed-search.html)
+本文翻译自Elasticsearch官方指南的[Distributed Search Execution](http://www.elasticsearch.org/guide/en/elasticsearch/guide/current/distributed-search.html)一章。
 
 在继续之前，我们将绕一段路来谈谈在分布式环境中，搜索是如何执行的。和在分布式文档存储(Distributed Document Store)中讨论的基本CRUD操作相比，这个过程会更加复杂一些。
 
