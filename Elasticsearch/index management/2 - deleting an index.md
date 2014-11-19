@@ -1,12 +1,20 @@
 ## 删除索引 ##
 
-To delete an index, use the following request:
+使用下面的请求完成索引的删除：
 
+```
 DELETE /my_index
-You can delete multiple indices with:
+```
 
+你也可以删除多个索引：
+
+```
 DELETE /index_one,index_two
 DELETE /index_*
-You can even delete ALL indices with:
+```
 
+你甚至还可以删除所有的索引：
+
+```
 DELETE /_all
+```
