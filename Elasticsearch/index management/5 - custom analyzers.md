@@ -23,6 +23,8 @@ TODO
 
 ### 创建一个自定义的解析器 ###
 
+和上面我们配置`es_std`解析器的方式相同，我们可以在`analysis`下对字符过滤器，分词器和词条过滤器进行配置：
+
 ```
 PUT /my_index
 {
@@ -39,8 +41,8 @@ PUT /my_index
 
 比如，要创建拥有如下功能的解析器：
 
-1. 使用html_strip完成HTML标签的剔除
-2. 将&字符替换成" and "，使用一个自定义的mapping字符过滤器
+1. 使用`html_strip`字符过滤器完成HTML标签的移除。
+2. 将&字符替换成" and "，使用一个自定义的`mapping`字符过滤器。
 
 ```
 "char_filter": {
@@ -51,9 +53,9 @@ PUT /my_index
 }
 ```
 
-3. 使用标准分词器对文本进行分词。standard analyzer
-4. 使用lowercase token过滤器将所有词条转换为小写
-5. 移除一个自定义的stopword列表，使用自定义的stop token filter
+3. 使用`standard`分词器对文本进行分词。
+4. 使用`lowercase`词条过滤器将所有词条转换为小写。
+5. 使用一个自定义的stopword列表，并通过自定义的stop词条过滤器将它们移除：
 
 ```
 "filter": {
@@ -64,7 +66,7 @@ PUT /my_index
 }
 ```
 
-解析器就可以定义成：
+我们的解析器将预先定义的分词器和过滤器和自定义的过滤器进行了结合：
 
 ```
 "analyzer": {
@@ -77,67 +79,63 @@ PUT /my_index
 }
 ```
 
-测试数据：
+因此，整个`create-index`请求就像下面这样：
 
 ```
-# Delete the `my_index` index
-DELETE /my_index
-
-# Create a custom analyzer
 PUT /my_index
 {
-  "settings": {
-    "analysis": {
-      "char_filter": {
-        "&_to_and": {
-          "type": "mapping",
-          "mappings": [
-            "&=> and "
-          ]
-        }
-      },
-      "filter": {
-        "my_stopwords": {
-          "type": "stop",
-          "stopwords": [
-            "the",
-            "a"
-          ]
-        }
-      },
-      "analyzer": {
-        "my_analyzer": {
-          "type": "custom",
-          "char_filter": [
-            "html_strip",
-            "&_to_and"
-          ],
-          "tokenizer": "standard",
-          "filter": [
-            "lowercase",
-            "my_stopwords"
-          ]
-        }
-      }
-    }
-  }
-}
-
-# Test out the new analyzer
-GET /my_index/_analyze?analyzer=my_analyzer&text=The quick %26 brown fox
-
-# Apply "my_analyzer" to the `title` field
-PUT /my_index/_mapping/my_type
-{
-  "properties": {
-    "title": {
-      "type": "string",
-      "analyzer": "my_analyzer"
-    }
-  }
-}
-
+    "settings": {
+        "analysis": {
+            "char_filter": {
+                "&_to_and": {
+                    "type":       "mapping",
+                    "mappings": [ "&=> and "]
+            }},
+            "filter": {
+                "my_stopwords": {
+                    "type":       "stop",
+                    "stopwords": [ "the", "a" ]
+            }},
+            "analyzer": {
+                "my_analyzer": {
+                    "type":         "custom",
+                    "char_filter":  [ "html_strip", "&_to_and" ],
+                    "tokenizer":    "standard",
+                    "filter":       [ "lowercase", "my_stopwords" ]
+            }}
+}}}
 ```
 
+创建索引之后，使用`analyze` API对新的解析器进行测试：
 
+```
+GET /my_index/_analyze?analyzer=my_analyzer
+The quick & brown fox
+```
 
+得到的部分结果如下，表明我们的解析器能够正常工作：
+
+```
+{
+  "tokens" : [
+      { "token" :   "quick",    "position" : 2 },
+      { "token" :   "and",      "position" : 3 },
+      { "token" :   "brown",    "position" : 4 },
+      { "token" :   "fox",      "position" : 5 }
+    ]
+}
+```
+
+我们需要告诉ES这个解析器应该在什么地方使用。我们可以将它应用在`string`字段的映射中：
+
+```
+PUT /my_index/_mapping/my_type
+{
+    "properties": {
+        "title": {
+            "type":      "string",
+            "analyzer":  "my_analyzer"
+        }
+    }
+}
+```
