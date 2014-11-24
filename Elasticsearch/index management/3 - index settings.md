@@ -26,6 +26,7 @@ PUT /my_temp_index
         "number_of_replicas" : 0
     }
 }
+```
 
 将来，我们可以动态地通过update-index-settings API完成对副本分片数量的修改：
 
