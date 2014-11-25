@@ -20,7 +20,7 @@ ES中的type是基于以下简单的基础进行实现的。一个索引中可�
 
 比如，`user`类型的`name`字段可以定义成一个`string`类型的字段，而它的值则应该被`whitespace`解析器进行解析，然后再被索引到名为`name`的倒排索引中。
 
-```
+```json
 "name": {
     "type":     "string",
     "analyzer": "whitespace"
@@ -35,7 +35,7 @@ ES中的type是基于以下简单的基础进行实现的。一个索引中可�
 
 问题可以通过下面的查询反映：
 
-```
+```json
 GET /_search
 {
     "query": {
@@ -51,7 +51,7 @@ GET /_search
 我们可以通过将字段命名地不同 - 比如`title_en`和`title_es` - 或者通过显式地将类型名包含在字段名中，然后对每个字段独立查询来避免这个问题：
 
 
-```
+```json
 GET /_search
 {
     "query": {
@@ -70,13 +70,14 @@ GET /_search
 这个解决方案能够在两个域是相同数据类型时起作用，但是考虑下面的场景，当向相同索引中添加两份文档时会发生什么：
 
 **类型user**
-```
+
+```json
 { "login": "john_smith" }
 ```
 
 **类型event**
 
-```
+```json
 { "login": "2014-06-01" }
 ```
 

@@ -10,7 +10,7 @@
 
 dynamic设置可以放在root object或者任何字段object上：
 
-```
+```json
 PUT /my_index
 {
     "mappings": {

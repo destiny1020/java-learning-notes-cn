@@ -31,7 +31,7 @@
 
 即便如此，存储`_store`字段确实会占用磁盘空间。如果以上的任何好处对你都不重要，你可以使用以下的映射来禁用`_source`字段：
 
-```
+```json
 PUT /my_index
 {
     "mappings": {
@@ -46,7 +46,7 @@ PUT /my_index
 
 在一个搜索请求中，你可以只要求返回部分字段，通过在请求正文(Request body)中指定`_source`参数：
 
-```
+```json
 GET /_search
 {
     "query":   { "match_all": {}},
@@ -68,7 +68,7 @@ GET /_search
 
 `_all`字段在一个新应用的探索阶段有用处，此时你对文档的最终结构还不太确定。你可以直接使用任何搜索字符串，并且也能够得到需要的结果：
 
-```
+```json
 GET /_search
 {
     "match": {
@@ -84,7 +84,7 @@ GET /_search
 
 如果你决定不再需要`_all`字段了，那么可以通过下面的映射设置来禁用它：
 
-```
+```json
 PUT /my_index/_mapping/my_type
 {
     "my_type": {
@@ -97,7 +97,7 @@ PUT /my_index/_mapping/my_type
 
 如果你只需要将部分字段添加到`_all`字段中，比如`title`，`overview`，`summary`，`tags`等，用来方便地进行全文搜索。那么相比完全禁用`_all`，你可以将`include_in_all`默认设置为对所有字段禁用，然后对你选择的字段启用：
 
-```
+```json
 PUT /my_index/my_type/_mapping
 {
     "my_type": {
@@ -115,7 +115,7 @@ PUT /my_index/my_type/_mapping
 
 需要记住的是，`_all`字段也只不过是一个被解析过的`string`字段。它使用默认的解析器来解析其值，无论来源字段中设置的是什么解析器。和任何`string`字段一样，你也可以配置`_all`字段应该使用的解析器：
 
-```
+```json
 PUT /my_index/my_type/_mapping
 {
     "my_type": {
@@ -139,7 +139,7 @@ PUT /my_index/my_type/_mapping
 
 `_id`字段有一个你也许会用到的设置：`path`，它用来告诉ES：文档应该从某个字段中抽取一个值来作为它自身的`_id`。
 
-```
+```json
 PUT /my_index
 {
     "mappings": {
@@ -161,7 +161,7 @@ PUT /my_index
 
 然后，当你索引一份文档：
 
-```
+```json
 POST /my_index/my_type
 {
     "doc_id": "123"
@@ -170,7 +170,7 @@ POST /my_index/my_type
 
 得到的结果是这样的：
 
-```
+```json
 {
     "_index":   "my_index",
     "_type":    "my_type",

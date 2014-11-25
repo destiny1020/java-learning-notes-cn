@@ -19,13 +19,11 @@
 
 在[深入搜索](http://www.elasticsearch.org/guide/en/elasticsearch/guide/current/search-in-depth.html)中，我们会通过例子来讨论这些分词器和过滤器的使用场景和使用方法。但是首先，我们需要解释如何来创建一个自定义的解析器。
 
-TODO
-
 ### 创建一个自定义的解析器 ###
 
 和上面我们配置`es_std`解析器的方式相同，我们可以在`analysis`下对字符过滤器，分词器和词条过滤器进行配置：
 
-```
+```json
 PUT /my_index
 {
     "settings": {
@@ -44,7 +42,7 @@ PUT /my_index
 1. 使用`html_strip`字符过滤器完成HTML标签的移除。
 2. 将&字符替换成" and "，使用一个自定义的`mapping`字符过滤器。
 
-```
+```json
 "char_filter": {
     "&_to_and": {
         "type":       "mapping",
@@ -57,7 +55,7 @@ PUT /my_index
 4. 使用`lowercase`词条过滤器将所有词条转换为小写。
 5. 使用一个自定义的stopword列表，并通过自定义的stop词条过滤器将它们移除：
 
-```
+```json
 "filter": {
     "my_stopwords": {
         "type":        "stop",
@@ -68,7 +66,7 @@ PUT /my_index
 
 我们的解析器将预先定义的分词器和过滤器和自定义的过滤器进行了结合：
 
-```
+```json
 "analyzer": {
     "my_analyzer": {
         "type":           "custom",
@@ -81,7 +79,7 @@ PUT /my_index
 
 因此，整个`create-index`请求就像下面这样：
 
-```
+```json
 PUT /my_index
 {
     "settings": {
@@ -108,14 +106,14 @@ PUT /my_index
 
 创建索引之后，使用`analyze` API对新的解析器进行测试：
 
-```
+```json
 GET /my_index/_analyze?analyzer=my_analyzer
 The quick & brown fox
 ```
 
 得到的部分结果如下，表明我们的解析器能够正常工作：
 
-```
+```json
 {
   "tokens" : [
       { "token" :   "quick",    "position" : 2 },
@@ -128,7 +126,7 @@ The quick & brown fox
 
 我们需要告诉ES这个解析器应该在什么地方使用。我们可以将它应用在`string`字段的映射中：
 
-```
+```json
 PUT /my_index/_mapping/my_type
 {
     "properties": {
