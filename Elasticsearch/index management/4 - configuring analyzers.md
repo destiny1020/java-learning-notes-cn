@@ -36,7 +36,7 @@ PUT /spanish_docs
 ```json
 GET /spanish_docs/_analyze?analyzer=es_std
 {
-    El veloz zorro marrón"
+    El veloz zorro marrón
 }
 ```
 
