@@ -18,7 +18,7 @@
 
 比如，我们可以通过下面的请求创建一个小的索引 - 只有一个主分片 - 同时没有副本分片：
 
-```
+```json
 PUT /my_temp_index
 {
     "settings": {
@@ -30,7 +30,7 @@ PUT /my_temp_index
 
 将来，我们可以动态地通过update-index-settings API完成对副本分片数量的修改：
 
-```
+```json
 PUT /my_temp_index/_settings
 {
     "number_of_replicas": 1
