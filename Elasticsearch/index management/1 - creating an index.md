@@ -9,10 +9,10 @@
 ```json
 PUT /my_index
 {
-    "settings": { ... any settings ... },
+    "settings": { ... },
     "mappings": {
-        "type_one": { ... any mappings ... },
-        "type_two": { ... any mappings ... },
+        "type_one": { ... },
+        "type_two": { ... },
         ...
     }
 }
