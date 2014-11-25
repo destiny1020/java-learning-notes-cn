@@ -15,7 +15,7 @@
 
 在下面的例子中，我们创建了一个名为`es_std`的解析器，它使用了预先定义的西班牙语中的stopwords列表：
 
-```
+```json
 PUT /spanish_docs
 {
     "settings": {
@@ -33,7 +33,7 @@ PUT /spanish_docs
 
 `es_std`解析器不是全局的 - 它只作用于`spanish_docs`索引。可以通过制定索引名，使用`analyze` API进行测试：
 
-```
+```json
 GET /spanish_docs/_analyze?analyzer=es_std
 {
     El veloz zorro marrón"
@@ -42,7 +42,7 @@ GET /spanish_docs/_analyze?analyzer=es_std
 
 下面的部分结果显示了西班牙语中的stopword `El`已经被正确地移除了：
 
-```
+```json
 {
   "tokens" : [
     { "token" :    "veloz",   "position" : 2 },
