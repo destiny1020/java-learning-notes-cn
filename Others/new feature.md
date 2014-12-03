@@ -1,3 +1,5 @@
+# 12.2 更新 #
+
 ## 1. 信息传入后台 ##
 
 首先页面上有一个入口，点击之后将如下信息传送给后台：
@@ -73,4 +75,50 @@ p：页码，从演员入口进入的页码为1，即第一页
 点击底部的页码链接的行为：
 
 参考第一步：信息传入后台
+
+-----
+# 12.3 更新 #
+
+## 演员表中的新增加字段： ##
+
+1. explorer页面的上次浏览时间，没有浏览过则为null。记为last_explore_time
+2. explorer是否已全部探索完，默认值为false。记为explore_done
+
+这两个字段属于一个新的类型中，演员Explorer类型。该类型和演员之间的关系是OneToOne。
+
+需要修改演员的JsonSerializer实现以及ES的重索引。
+
+相关信息也需要反映在Table中：
+浏览时间直接放在Explorer按钮的后面，使用moment
+全部探索完的explorer且上次探索时间距离现在小于1个月的，按钮的颜色为 **绿色**
+全部探索完的explorer且上次探索时间距离现在大于等于1个月的，按钮的颜色为 **黄色**
+未探索过的为 **红色**
+
+关于探索完成/未完成的标记，放在explorer view的头部，放一个button。用来更新explore_done的状态：
+完成时显示绿色的button，text为Finished，Toggle to Unfinished
+未完成时显示红色的button，text为Unfinished，Toggle to Finished
+
+## explorer view强化 ##
+
+explorer view左侧信息栏添加更多的信息。比如Table中的可用信息都可以copy到这里一份。
+
+explorer view的body部分，为每个brick添加直接播放的按钮。有些brick可能对应了多个播放路径：
+单个路径使用单一按钮，多个路径使用btn-group实现，颜色为primary系，text是影片名字。
+
+ps cover点击放大的功能：
+考虑使用fancybox？参考类似网站。
+[angular-bootstrap-lightbox](https://github.com/compact/angular-bootstrap-lightbox)
+
+## Dashboard相关功能： ##
+
+1. 总的影片数量和总体volume
+
+调研 D3和Angular的结合：
+[angular-nvd3](https://github.com/krispo/angular-nvd3)
+
+
+
+
+
+
 
