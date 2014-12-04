@@ -116,6 +116,55 @@ ps cover点击放大的功能：
 调研 D3和Angular的结合：
 [angular-nvd3](https://github.com/krispo/angular-nvd3)
 
+以及：
+[angularjs-nvd3-directives](https://github.com/cmaurer/angularjs-nvd3-directives)
+
+-----
+# 12.4 更新 #
+
+添加loading bar：[angular-loading-bar](https://github.com/chieffancypants/angular-loading-bar)
+
+一些可能需要的额外filters：[angular filter](https://github.com/a8m/angular-filter)
+
+drag-drop支持：[angular-dragdrop](https://github.com/codef0rmer/angular-dragdrop)
+
+播放计数器：
+每次点击播放之后，计数器加1。需要新字段：play_count
+
+影片列表页面，和演员页面一样，需要支持List模式和Grid模式。
+List模式中需要显示Cover PS，在Grid中也需要。点击之后使用lightbox显示LS。
+
+影片的rating以及演员的rating，使用angular bootstrap的rating控件。
+对于演员的rating字段，放在其EXPLORER_xxx表中，对于影片，直接放在对应表中即可。
+
+增加一点随机性，问题是如何随机呢？
+随机性相关功能应该放在一个单独的random view中，因为将来会有更多的相关功能。
+
+random view中包含的几个tabs：
+- 影片random
+- 演员random
+- To be added...
+
+Movie crawler到底要如何进行？
+主要问题是要避免crawl一些无关的信息，目前这类信息很多。
+
+Highlight view的建立：
+1. 创建记录要方便！
+2. 影片拥有的highlight记录需要在movie view中直接能够访问到。
+
+自定义标签的定义：
+标签的颜色如何方便的定义？标签如何快速的被建立？
+http://decipherinc.github.io/angular-tags/
+
+预先定义的tags需要定义一个group属性，这个属性可以被映射成一个class name，然后就可以对其样式进行控制。如果要新添加tag，还是需要在一个专门的dialog中进行，因为快速添加这种模式无法设置group属性。
+
+
+
+
+
+
+
+
 
 
 
