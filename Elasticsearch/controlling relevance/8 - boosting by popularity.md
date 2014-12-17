@@ -121,5 +121,70 @@ GET /blogposts/post/_search
 - max：_score和函数结果的较大值
 - replace：将_score替换成函数结果
 
+如果我们是通过将函数结果累加来得到_score，其影响会小的多，特别是当我们使用了一个较低的factor时：
+
+```json
+GET /blogposts/post/_search
+{
+  "query": {
+    "function_score": {
+      "query": {
+        "multi_match": {
+          "query":    "popularity",
+          "fields": [ "title", "content" ]
+        }
+      },
+      "field_value_factor": {
+        "field":    "votes",
+        "modifier": "log1p",
+        "factor":   0.1
+      },
+      "boost_mode": "sum" 
+    }
+  }
+}
+```
+
+上述请求的公式如下所示：
+
+> new_score = old_score + log(1 + 0.1 * number_of_votes)
+
+![](http://www.elasticsearch.org/guide/en/elasticsearch/guide/current/images/elas_1704.png)
+
+**max_boost**
+
+最后，我们能够通过制定max_boost参数来限制函数的最大影响：
+
+```json
+GET /blogposts/post/_search
+{
+  "query": {
+    "function_score": {
+      "query": {
+        "multi_match": {
+          "query":    "popularity",
+          "fields": [ "title", "content" ]
+        }
+      },
+      "field_value_factor": {
+        "field":    "votes",
+        "modifier": "log1p",
+        "factor":   0.1
+      },
+      "boost_mode": "sum",
+      "max_boost":  1.5 
+    }
+  }
+}
+```
+
+无论field_value_factor函数的结果是多少，它绝不会大于1.5。
+
+**NOTE**
+
+max_boost只是对函数的结果有所限制，并不是最终的_score。
+
+
+
 
 
