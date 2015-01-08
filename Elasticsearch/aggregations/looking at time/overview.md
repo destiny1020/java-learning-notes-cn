@@ -4,27 +4,23 @@
 
 想象在你的数据中有一个时间戳。数据是什么不重要-Apache日志事件，股票交易日期，棒球比赛时间-任何拥有时间戳的数据都能通过日期柱状图受益。当你有时间戳时，你经常会想创建基于时间的指标信息：
 
-- How many cars sold each month this year?
 - 今年的每个月销售了多少辆车？
 
-- What was the price of this stock for the last 12 hours?
 - 过去的12小时中，这只股票的价格是多少？ 
 
-- What was the average latency of our website every hour in the last week?
 - 上周每个小时我们的网站的平均延迟是多少？
 
-While regular histograms are often represented as bar charts, date histograms tend to be converted into line graphs representing time series. Many companies use Elasticsearch solely for analytics over time series data. The date_histogram bucket is their bread and butter.
 常规的histogram通常使用条形图来表示，而date histogram倾向于被装换为线图(Line Graph)来表达时间序列(Time Series)。很多公司使用ES就是为了对时间序列数据进行分析。
 
-The date_histogram bucket works similarly to the regular histogram. Rather than building buckets based on a numeric field representing numeric ranges, it builds buckets based on time ranges. Each bucket is therefore defined as a certain calendar size (for example, 1 month or 2.5 days).
+date_histogram的工作方式和常规的histogram类似。常规的histogram是基于数值字段来创建数值区间的桶，而date_histogram则是基于时间区间来创建桶。因此每个桶是按照某个特定的日历时间定义的(比如，1个月或者是2.5天)。
 
->**Can a Regular Histogram Work with Dates?**
+>**常规Histogram能够和日期一起使用吗？**
 >
->Technically, yes. A regular histogram bucket will work with dates. However, it is not calendar-aware. With the date_histogram, you can specify intervals such as 1 month, which knows that February is shorter than December. The date_histogram also has the advantage of being able to work with time zones, which allows you to customize graphs to the time zone of the user, not the server.
+>从技术上而言，是可以的。常规的histogram桶可以和日期一起使用。但是，它并懂日期相关的信息(Not calendar-aware)。而对于date_histogram，你可以将间隔(Interval)指定为1个月，它知道2月份比12月份要短。date_histogram还能够和时区一同工作，因此你可以根据用户的时区来对图形进行定制，而不是根据服务器。
 >
->The regular histogram will interpret dates as numbers, which means you must specify intervals in terms of milliseconds. And the aggregation doesn’t know about calendar intervals, which makes it largely useless for dates.
+>常规的histogram会将日期理解为数值，这意味着你必须将间隔以毫秒的形式指定。同时聚合也不理解日历间隔，所以它对于日期几乎是没法使用的。
 
-Our first example will build a simple line chart to answer this question: how many cars were sold each month?
+第一个例子中，我们会创建一个简单的线图(Line Chart)来回答这个问题：每个月销售了多少辆车？
 
 ```json
 GET /cars/transactions/_search?search_type=count
@@ -41,9 +37,9 @@ GET /cars/transactions/_search?search_type=count
 }
 ```
 
-Our query has a single aggregation, which builds a bucket per month. This will give us the number of cars sold in each month. An additional format parameter is provided so the buckets have "pretty" keys. Internally, dates are simply represented as a numeric value. This tends to make UI designers grumpy, however, so a prettier format can be specified using common date formatting.
+在查询中有一个聚合，它为每个月创建了一个桶。它能够告诉我们每个月销售了多少辆车。同时指定了一个额外的格式参数让桶拥有更"美观"的键值。在内部，日期被简单地表示成数值。然而这会让UI设计师生气，因此使用格式参数可以让日期以更常见的格式进行表示。
 
-The response is both expected and a little surprising (see if you can spot the surprise):
+得到的响应符合预期，但是也有一点意外(看看你能够察觉到)：
 
 ```json
 {
@@ -91,4 +87,4 @@ The response is both expected and a little surprising (see if you can spot the s
 }
 ```
 
-The aggregation is represented in full. As you can see, we have buckets that represent months, a count of docs in each month, and our pretty key_as_string.
+聚合完整地被表达出来了。你能看到其中有用来表示月份的桶，每个桶中的文档数量，以及漂亮的key_as_string。
